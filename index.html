@@ -2,86 +2,218 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clawdbot Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Clawdbot Pro Ops</title>
     <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-slate-900 text-slate-100 p-4 min-h-screen font-sans">
-    <nav class="mb-8">
-        <h1 class="text-xl font-bold text-blue-400">⚡️ CLAWDBOT DASHBOARD</h1>
-        <p class="text-[10px] text-slate-500 uppercase tracking-widest">Status: Live via Netlify</p>
-    </nav>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --accent: #3b82f6; }
+        body { background-color: #020617; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        
+        /* 1. UI Struktur & Scanbarkeit */
+        .task-card { background: #1e293b; border: 1px solid #334155; border-radius: 1.5rem; transition: transform 0.1s, background 0.2s; cursor: pointer; position: relative; overflow: hidden; }
+        .task-card:active { transform: scale(0.97); background: #334155; }
+        
+        /* 2. Task Card Zeilen-Logik */
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 16px; font-weight: 600; line-height: 1.4; }
+        
+        /* 3. & 4. Status & Planung Chips */
+        .chip { display: inline-flex; align-items: center; justify-content: center; height: 24px; padding: 0 8px; border-radius: 6px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; min-width: 44px; min-height: 24px; }
+        
+        .status-unklar { background: #fef08a; color: #854d0e; }
+        .status-offen { background: #3b82f6; color: #ffffff; }
+        .status-arbeit { background: #a855f7; color: #ffffff; }
+        .status-blockiert { background: #ef4444; color: #ffffff; }
+        .status-erledigt { background: #22c55e; color: #ffffff; }
+        
+        .plan-chip { background: #334155; color: #94a3b8; border: 1px solid #475569; }
+        .cat-chip { background: rgba(59, 130, 246, 0.1); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.2); }
+        .owner-chip { background: #0f172a; color: #64748b; border: 1px solid #334155; }
 
-    <main class="space-y-6">
-        <!-- Stats -->
-        <div class="grid grid-cols-2 gap-4">
-            <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700">
-                <div class="text-[10px] text-slate-500 uppercase font-bold">Total Tokens</div>
-                <div id="input-tokens" class="text-2xl font-bold">---</div>
-            </div>
-            <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700">
-                <div class="text-[10px] text-slate-500 uppercase font-bold">Last Update</div>
-                <div id="last-update" class="text-2xl font-bold text-blue-400">--:--</div>
+        /* 1.2 Primäre Aktion (FAB) */
+        .fab { position: fixed; bottom: 32px; right: 24px; width: 64px; height: 64px; border-radius: 20px; background: #2563eb; color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4); z-index: 100; border: 2px solid rgba(255,255,255,0.1); }
+        
+        /* 5. Suche */
+        .search-container { position: sticky; top: 72px; z-index: 40; background: rgba(2, 6, 23, 0.8); backdrop-blur: 12px; margin: -1rem -1rem 1rem -1rem; padding: 1rem; }
+
+        .modal { display: none; position: fixed; z-index: 200; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); }
+        .modal-content { background: #1e293b; margin: 15% auto; padding: 24px; border-radius: 2rem; width: 95%; max-width: 450px; border: 1px solid #334155; }
+    </style>
+</head>
+<body class="text-slate-100 pb-24">
+
+    <!-- 1.1 Header -->
+    <header class="sticky top-0 z-50 bg-[#020617]/80 backdrop-blur-xl border-b border-slate-800 p-5 flex justify-between items-center">
+        <div>
+            <h1 class="text-sm font-black tracking-widest text-slate-500 uppercase">Clawdbot Pro</h1>
+            <div class="flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                <span class="text-[10px] font-bold text-green-500 uppercase">System Active</span>
             </div>
         </div>
+        <div class="flex gap-2">
+            <button onclick="update()" class="p-2 bg-slate-800 rounded-xl"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg></button>
+        </div>
+    </header>
+
+    <main class="max-w-xl mx-auto px-5">
+        
+        <!-- 5. Suche -->
+        <div class="search-container">
+            <input type="text" id="global-search" oninput="handleSearch(this.value)" placeholder="Suche nach Titel, Kategorie, Owner..." class="w-full bg-slate-800/50 border border-slate-700 rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-blue-500/50 transition text-base">
+        </div>
+
+        <!-- 7. Performance Dashboard -->
+        <section class="grid grid-cols-2 gap-4 mb-8">
+            <div class="bg-slate-800/40 p-5 rounded-[2rem] border border-slate-800">
+                <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Tasks</div>
+                <div id="perf-total" class="text-3xl font-black">---</div>
+            </div>
+            <div class="bg-slate-800/40 p-5 rounded-[2rem] border border-slate-800">
+                <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Tokens Usage</div>
+                <div id="perf-tokens" class="text-3xl font-black text-blue-500">---</div>
+            </div>
+        </section>
 
         <!-- Tasks -->
-        <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
-            <h2 class="text-lg font-bold mb-4">Geplante Tasks</h2>
-            <div id="task-list" class="space-y-3">
-                <div class="text-slate-500 italic text-sm">Lade Daten...</div>
+        <section class="space-y-4">
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-xs font-black uppercase text-slate-500 tracking-widest">Aufgabenübersicht</h2>
+                <div id="task-count" class="text-[10px] font-bold bg-slate-800 px-2 py-1 rounded-lg">0</div>
             </div>
-            <button onclick="addTask()" class="w-full mt-6 py-4 bg-blue-600 rounded-xl font-bold active:scale-95 transition">
-                + Neuen Task hinzufügen
-            </button>
-        </div>
+            
+            <div id="task-list" class="space-y-4">
+                <!-- Skeleton -->
+                <div class="h-32 bg-slate-800/20 rounded-[2rem] animate-pulse"></div>
+            </div>
+        </section>
     </main>
+
+    <!-- 1.2 FAB -->
+    <button onclick="openTaskModal()" class="fab" aria-label="Neuen Task planen">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="3" d="M12 4v16m8-8H4"></path></svg>
+    </button>
+
+    <!-- Modal -->
+    <div id="taskModal" class="modal">
+        <div class="modal-content">
+            <h2 class="text-xl font-black mb-6">Neuen Task planen</h2>
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-[10px] uppercase font-bold text-slate-500 mb-2 tracking-widest">Aufgabe</label>
+                    <input type="text" id="m-name" class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-4 text-white outline-none focus:border-blue-500" placeholder="...">
+                </div>
+                <button onclick="submitTask()" class="w-full bg-blue-600 py-4 rounded-2xl font-black text-lg shadow-xl">Speichern</button>
+                <button onclick="closeTaskModal()" class="w-full bg-slate-800 py-3 rounded-xl font-bold text-sm text-slate-400">Abbrechen</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         const TASK_DB_ID = "2f88adfd364b81d9a1acea15263d4885";
         const STATS_DB_ID = "2f88adfd364b81c08fa2d019470cb1e5";
+        let allTasks = [];
 
-        async function addTask() {
-            const taskName = prompt("Was soll ich tun?");
-            if (!taskName) return;
+        function openTaskModal() { document.getElementById('taskModal').style.display = 'block'; }
+        function closeTaskModal() { document.getElementById('taskModal').style.display = 'none'; }
+
+        // 3. Status Logik
+        const getStatusClass = (s) => {
+            if (s === 'Unklar') return 'status-unklar';
+            if (s === 'Offen') return 'status-offen';
+            if (s === 'In Arbeit') return 'status-arbeit';
+            if (s === 'Blockiert') return 'status-blockiert';
+            if (s === 'Erledigt') return 'status-erledigt';
+            return 'bg-slate-700';
+        };
+
+        async function submitTask() {
+            const name = document.getElementById('m-name').value;
+            if (name.length < 3) return alert("Titel zu kurz.");
             try {
                 const res = await fetch(`/.netlify/functions/notion-proxy?db_id=${TASK_DB_ID}`, {
                     method: 'POST',
-                    body: JSON.stringify({
-                        properties: { "Aufgabe": { "title": [{ "text": { "content": taskName } }] } }
-                    })
+                    body: JSON.stringify({ properties: { "Aufgabe": { "title": [{ "text": { "content": name } }] } } })
                 });
-                if (res.ok) update();
-            } catch (e) { alert("Fehler"); }
+                if (res.ok) { closeTaskModal(); update(); }
+            } catch (e) { console.error(e); }
         }
 
         async function update() {
             try {
-                const [sRes, tRes] = await Promise.all([
+                const [statsRes, tasksRes] = await Promise.all([
                     fetch(`/.netlify/functions/notion-proxy?db_id=${STATS_DB_ID}`),
                     fetch(`/.netlify/functions/notion-proxy?db_id=${TASK_DB_ID}`)
                 ]);
-                const stats = await sRes.json();
-                const tasks = await tRes.json();
-
+                const stats = await statsRes.json();
+                const tasks = await tasksRes.json();
+                allTasks = tasks.results || [];
+                renderTasks(allTasks);
+                
                 if (stats.results?.[0]) {
                     const p = stats.results[0].properties;
-                    document.getElementById('input-tokens').innerText = (p["Total Tokens"]?.number / 1000).toFixed(1) + 'k';
-                    document.getElementById('last-update').innerText = new Date(p["Zeitpunkt"].date.start).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                }
-
-                if (tasks.results) {
-                    document.getElementById('task-list').innerHTML = tasks.results.map(t => `
-                        <div class="bg-slate-900 p-4 rounded-xl border-l-4 border-blue-500">
-                            <div class="text-sm font-medium">${t.properties.Aufgabe.title[0]?.plain_text || "Unbenannt"}</div>
-                            <div class="text-[10px] text-slate-500 mt-1 uppercase">${t.properties.Status?.select?.name || "Geplant"}</div>
-                        </div>
-                    `).join('');
+                    document.getElementById('perf-tokens').innerText = (p["Total Tokens"]?.number / 1000).toFixed(1) + 'k';
+                    document.getElementById('perf-total').innerText = allTasks.length;
                 }
             } catch (e) { console.error(e); }
         }
+
+        function handleSearch(q) {
+            const query = q.toLowerCase();
+            const filtered = allTasks.filter(t => {
+                const p = t.properties;
+                const title = (p.Aufgabe?.title[0]?.plain_text || "").toLowerCase();
+                const cat = (p.Typ?.select?.name || "").toLowerCase();
+                const owner = (p.Zuständig?.select?.name || "").toLowerCase();
+                return title.includes(query) || cat.includes(query) || owner.includes(query);
+            });
+            renderTasks(filtered);
+        }
+
+        function renderTasks(tasks) {
+            document.getElementById('task-count').innerText = tasks.length;
+            document.getElementById('task-list').innerHTML = tasks.map(t => {
+                const p = t.properties;
+                const title = p.Aufgabe?.title[0]?.plain_text || "Unbenannt";
+                const status = p.Status?.select?.name || "Offen";
+                const planning = p.Intervall?.select?.name || "Einmalig";
+                const cat = p.Typ?.select?.name || "Allgemein";
+                const owner = p.Zuständig?.select?.name || "Molti";
+                const date = p.Fällig?.date?.start ? new Date(p.Fällig.date.start).toLocaleDateString('de-DE') : "-";
+
+                return `
+                    <div class="task-card p-6" role="button" aria-label="Task: ${title}, Status: ${status}">
+                        <!-- Zeile 1: Titel -->
+                        <h3 class="line-clamp-2 text-white mb-4">${title}</h3>
+                        
+                        <!-- Zeile 2: Meta-Chips -->
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            <span class="chip ${getStatusClass(status)}">${status}</span>
+                            <span class="chip plan-chip">${planning}</span>
+                            <span class="chip cat-chip">${cat}</span>
+                            <span class="chip owner-chip">${owner.split(' ')[0]}</span>
+                        </div>
+
+                        <!-- Zeile 3: Details & Meta -->
+                        <div class="flex items-center justify-between pt-4 border-t border-slate-700/50">
+                            <div class="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                ${date}
+                            </div>
+                            <div class="flex gap-3">
+                                <div class="flex items-center gap-1">
+                                    <svg class="w-3 h-3 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.414a4 4 0 00-5.656-5.656l-6.415 6.415a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                                    <span class="text-[9px] text-slate-600 font-black">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        setInterval(update, 30000);
         update();
-        setInterval(update, 20000);
     </script>
 </body>
 </html>
