@@ -2,131 +2,139 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Clawdbot Pro Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Clawdbot Ops Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
     <style>
-        body { background-color: #020617; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
-        .task-card { background: #1e293b; border: 1px solid #334155; border-radius: 1.5rem; transition: transform 0.2s; position: relative; }
-        .task-card:active { transform: scale(0.98); }
-        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 16px; }
+        body { background-color: #020617; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; overflow-x: hidden; color: #f8fafc; }
+        .task-card { background: #1e293b; border: 1px solid #334155; border-radius: 1.5rem; transition: transform 0.2s, opacity 0.2s; position: relative; touch-action: pan-y; user-select: none; }
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 16px; font-weight: 700; }
         
-        /* Chips & Colors */
-        .chip { display: inline-flex; align-items: center; justify-content: center; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; min-height: 32px; }
-        .status-unklar { background: #fef08a; color: #854d0e; }
+        /* 4. Farben & Kontrast */
+        .chip { display: inline-flex; align-items: center; padding: 0 10px; border-radius: 8px; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; height: 32px; cursor: pointer; }
+        .status-unklar { background: #facc15; color: #422006; }
         .status-offen { background: #3b82f6; color: #ffffff; }
         .status-arbeit { background: #a855f7; color: #ffffff; }
         .status-blockiert { background: #ef4444; color: #ffffff; }
         .status-erledigt { background: #22c55e; color: #ffffff; }
-        .plan-chip { background: #334155; color: #94a3b8; border: 1px solid #475569; }
-        .cat-chip { background: rgba(59, 130, 246, 0.1); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.2); }
-        .owner-chip { background: #0f172a; color: #64748b; border: 1px solid #334155; }
+        .plan-chip { background: #334155; color: #cbd5e1; border: 1px solid #475569; }
+        .cat-chip { background: rgba(59, 130, 246, 0.15); color: #93c5fd; }
+        .owner-chip { background: #0f172a; color: #94a3b8; border: 1px solid #334155; }
 
-        /* Drawer System */
-        .drawer { position: fixed; bottom: -100%; left: 0; right: 0; background: #1e293b; border-radius: 2rem 2rem 0 0; z-index: 150; transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1); padding: 24px; border-top: 1px solid #334155; max-height: 80vh; overflow-y: auto; }
+        /* 6. Interaktionen & Gesten */
+        .swipe-done { background: #14532d !important; transform: translateX(100%); opacity: 0; }
+        .swipe-edit { background: #1e3a8a !important; transform: translateX(-100%); opacity: 0; }
+        
+        .drawer { position: fixed; bottom: -100%; left: 0; right: 0; background: #1e293b; border-radius: 2.5rem 2.5rem 0 0; z-index: 200; transition: bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1); padding: 32px 24px; border-top: 1px solid #334155; max-height: 90vh; }
         .drawer.open { bottom: 0; }
-        .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 140; backdrop-blur: 4px; }
+        .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 150; backdrop-blur: 8px; }
         .overlay.open { display: block; }
+        
+        .snackbar { position: fixed; bottom: 110px; left: 24px; right: 24px; background: #334155; padding: 16px; border-radius: 1rem; display: flex; justify-content: space-between; align-items: center; z-index: 300; transform: translateY(200px); transition: transform 0.3s; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5); }
+        .snackbar.show { transform: translateY(0); }
 
-        .fab { position: fixed; bottom: 32px; right: 24px; width: 64px; height: 64px; border-radius: 20px; background: #2563eb; color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); z-index: 100; }
-        .search-sticky { position: sticky; top: 0; z-index: 60; background: rgba(2, 6, 23, 0.9); backdrop-blur: 16px; padding: 16px 20px; margin: 0 -20px; border-bottom: 1px solid #1e293b; }
+        .fab { position: fixed; bottom: 32px; right: 24px; width: 72px; height: 72px; border-radius: 24px; background: #2563eb; color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); z-index: 100; border: 2px solid rgba(255,255,255,0.2); }
     </style>
 </head>
-<body class="text-slate-100 p-5 pb-32">
+<body class="p-6 pb-32">
 
     <!-- 1.1 Header -->
-    <header class="flex justify-between items-center mb-6">
+    <header class="flex justify-between items-center mb-8">
         <div>
-            <h1 class="text-xs font-black tracking-[0.2em] text-slate-500 uppercase">Clawdbot Ops Pro</h1>
+            <h1 class="text-[10px] font-black tracking-[0.3em] text-blue-500 uppercase mb-1">Clawdbot Pro v2.2</h1>
             <div class="flex items-center gap-2">
-                <div class="w-2 h-2 rounded-full bg-green-500"></div>
-                <span class="text-[10px] font-bold text-green-500 uppercase">System Live</span>
+                <div class="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_10px_#22c55e]"></div>
+                <span class="text-xs font-bold text-white uppercase tracking-wider">System Live</span>
             </div>
         </div>
-        <button onclick="openDrawer('filterDrawer')" class="p-3 bg-slate-800 rounded-2xl border border-slate-700">
-            <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+        <button onclick="openDrawer('filterDrawer')" class="p-4 bg-slate-800 rounded-2xl border border-slate-700 active:scale-90 transition">
+            <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
         </button>
     </header>
 
-    <!-- 3.1 Suche -->
-    <div class="search-sticky mb-6">
+    <!-- 3.1 & 5.1 Suche -->
+    <div class="mb-10">
         <div class="relative">
-            <input type="text" id="global-search" oninput="handleSearch(this.value)" placeholder="Aufgaben, Owner, Tags..." class="w-full bg-slate-800/50 border border-slate-700 rounded-2xl py-4 pl-12 outline-none focus:ring-2 focus:ring-blue-500/50 transition">
-            <svg class="w-5 h-5 text-slate-500 absolute left-4 top-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <input type="text" id="global-search" oninput="handleSearch(this.value)" placeholder="Aufgaben, Owner, Kategorien..." class="w-full bg-slate-800/40 border border-slate-700/50 rounded-3xl py-5 pl-14 pr-6 outline-none focus:ring-4 focus:ring-blue-500/20 transition-all text-lg font-medium">
+            <svg class="w-6 h-6 text-slate-500 absolute left-5 top-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
         </div>
     </div>
 
-    <!-- 7. Performance -->
-    <section class="grid grid-cols-2 gap-4 mb-8">
-        <div class="bg-slate-800/40 p-5 rounded-3xl border border-slate-800">
-            <div class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Erledigt Heute</div>
-            <div id="perf-today" class="text-3xl font-black text-green-500">0</div>
+    <!-- 7.1 Performance Metrics -->
+    <section class="grid grid-cols-2 gap-5 mb-10">
+        <div class="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-[2.5rem] border border-slate-700/50 shadow-2xl">
+            <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Erledigt (Woche)</div>
+            <div id="perf-week" class="text-4xl font-black text-white">0</div>
         </div>
-        <div class="bg-slate-800/40 p-5 rounded-3xl border border-slate-800">
-            <div class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Offene Tasks</div>
-            <div id="perf-open" class="text-3xl font-black text-blue-500">0</div>
+        <div class="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-[2.5rem] border border-slate-700/50 shadow-2xl">
+            <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Open Load</div>
+            <div id="perf-open" class="text-4xl font-black text-blue-500">0</div>
         </div>
     </section>
 
     <!-- 2. Task List -->
-    <div id="task-list" class="space-y-4">
-        <div class="py-20 text-center animate-pulse text-slate-600 font-bold uppercase tracking-widest text-xs">Synchronisiere Notion Data...</div>
+    <div id="task-list" class="space-y-5">
+        <div class="py-20 text-center animate-pulse text-slate-600 font-black uppercase tracking-[0.2em] text-[10px]">Syncing Notion Source...</div>
     </div>
 
     <!-- 1.2 FAB -->
-    <button onclick="openDrawer('addDrawer')" class="fab">
-        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="3" d="M12 4v16m8-8H4"></path></svg>
+    <button onclick="openDrawer('addDrawer')" class="fab" aria-label="Task planen">
+        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="3.5" d="M12 4v16m8-8H4"></path></svg>
     </button>
 
-    <!-- Filter Drawer -->
+    <!-- 6.2 Bottom Sheets (Drawers) -->
     <div id="filterDrawer" class="drawer">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-xl font-black">Filter & Sortierung</h2>
-            <button onclick="closeDrawer()" class="text-slate-500 text-2xl">&times;</button>
-        </div>
-        <div class="space-y-6">
+        <div class="w-12 h-1.5 bg-slate-700 rounded-full mx-auto mb-8"></div>
+        <h2 class="text-2xl font-black mb-8">Filter & Sortierung</h2>
+        <div class="space-y-8">
             <div>
-                <label class="block text-[10px] font-black uppercase text-slate-500 mb-3">Sortierung</label>
-                <select id="sort-logic" onchange="renderTasks(allTasks)" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-4">
-                    <option value="overdue">Überfällig zuerst</option>
-                    <option value="today">Heute zuerst</option>
-                    <option value="newest">Neueste zuerst</option>
-                </select>
+                <label class="block text-xs font-black uppercase text-slate-500 mb-4 tracking-widest">Sortieren nach</label>
+                <div class="grid grid-cols-1 gap-3">
+                    <button onclick="setSort('overdue')" class="w-full p-5 bg-slate-800 border border-slate-700 rounded-2xl text-left font-bold active:bg-blue-600 transition">Überfällig zuerst</button>
+                    <button onclick="setSort('newest')" class="w-full p-5 bg-slate-800 border border-slate-700 rounded-2xl text-left font-bold active:bg-blue-600 transition">Neueste zuerst</button>
+                </div>
             </div>
-            <button onclick="closeDrawer()" class="w-full bg-blue-600 py-4 rounded-2xl font-black">Anwenden</button>
+            <button onclick="closeDrawer()" class="w-full bg-blue-600 py-5 rounded-2xl font-black text-lg shadow-2xl">Anwenden</button>
         </div>
     </div>
 
-    <!-- Detail/Add Drawer -->
+    <!-- Add Task Drawer -->
     <div id="addDrawer" class="drawer">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-xl font-black">Neuer Smart Task</h2>
-            <button onclick="closeDrawer()" class="text-slate-500 text-2xl">&times;</button>
-        </div>
-        <div class="space-y-5">
-            <input type="text" id="m-name" class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-4" placeholder="Titel der Aufgabe...">
-            <button onclick="submitTask()" class="w-full bg-blue-600 py-4 rounded-2xl font-black">Task in Notion anlegen</button>
+        <div class="w-12 h-1.5 bg-slate-700 rounded-full mx-auto mb-8"></div>
+        <h2 class="text-2xl font-black mb-8 text-blue-400">Neuer Smart Task</h2>
+        <div class="space-y-6">
+            <div>
+                <label class="block text-[10px] font-black uppercase text-slate-500 mb-2">Titel (3-120 Zeichen)</label>
+                <input type="text" id="m-name" maxlength="120" class="w-full bg-slate-900 border-2 border-slate-700 rounded-2xl p-5 text-xl font-bold text-white focus:border-blue-500 outline-none transition-all">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <select id="m-status" class="bg-slate-900 border-2 border-slate-700 rounded-2xl p-5 font-bold appearance-none"><option value="Offen">Offen</option><option value="In Arbeit">In Arbeit</option><option value="Erledigt">Erledigt</option></select>
+                <select id="m-planning" class="bg-slate-900 border-2 border-slate-700 rounded-2xl p-5 font-bold appearance-none"><option value="Einmalig">Einmalig</option><option value="Geplant">Geplant</option><option value="Heute">Heute</option></select>
+            </div>
+            <button onclick="submitTask()" class="w-full bg-blue-600 py-5 rounded-2xl font-black text-xl shadow-2xl active:scale-95 transition-all">In Notion speichern</button>
         </div>
     </div>
 
     <div id="overlay" class="overlay" onclick="closeDrawer()"></div>
+    
+    <!-- 7.1 Snackbar Undo -->
+    <div id="snackbar" class="snackbar">
+        <span id="snack-msg" class="font-bold text-sm">Task erledigt</span>
+        <button onclick="hideSnack()" class="text-blue-400 font-black uppercase text-xs tracking-widest">Undo</button>
+    </div>
 
     <script>
         const TASK_DB_ID = "2f88adfd364b81d9a1acea15263d4885";
         const STATS_DB_ID = "2f88adfd364b81c08fa2d019470cb1e5";
         let allTasks = [];
         let searchTimeout;
+        let currentSort = 'overdue';
 
         const openDrawer = (id) => { document.getElementById(id).classList.add('open'); document.getElementById('overlay').classList.add('open'); };
         const closeDrawer = () => { document.querySelectorAll('.drawer').forEach(d => d.classList.remove('open')); document.getElementById('overlay').classList.remove('open'); };
 
-        const getStatusClass = (s) => {
-            const map = { 'Unklar': 'status-unklar', 'Offen': 'status-offen', 'In Arbeit': 'status-arbeit', 'Blockiert': 'status-blockiert', 'Erledigt': 'status-erledigt' };
-            return map[s] || 'bg-slate-700';
-        };
-
-        // 3.1 Debounce Suche (250ms)
         function handleSearch(q) {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
@@ -148,11 +156,11 @@
                 allTasks = data.results || [];
                 
                 // 7. Performance Logic
-                const today = new Date().toISOString().split('T')[0];
-                const doneToday = allTasks.filter(t => t.properties.Status?.select?.name === 'Erledigt' && t.last_edited_time.startsWith(today)).length;
+                const oneWeekAgo = new Date(); oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+                const doneWeek = allTasks.filter(t => t.properties.Status?.select?.name === 'Erledigt' && new Date(t.last_edited_time) > oneWeekAgo).length;
                 const openTasks = allTasks.filter(t => t.properties.Status?.select?.name !== 'Erledigt').length;
                 
-                document.getElementById('perf-today').innerText = doneToday;
+                document.getElementById('perf-week').innerText = doneWeek;
                 document.getElementById('perf-open').innerText = openTasks;
                 
                 renderTasks(allTasks);
@@ -160,16 +168,9 @@
         }
 
         function renderTasks(tasks) {
-            // 5. Sortierung
-            const sortVal = document.getElementById('sort-logic').value;
             let sorted = [...tasks];
-            if (sortVal === 'overdue') {
-                const today = new Date().toISOString().split('T')[0];
-                sorted.sort((a, b) => {
-                    const dA = a.properties.Fällig?.date?.start || "9999";
-                    const dB = b.properties.Fällig?.date?.start || "9999";
-                    return dA.localeCompare(dB);
-                });
+            if (currentSort === 'overdue') {
+                sorted.sort((a, b) => (a.properties.Fällig?.date?.start || "9999").localeCompare(b.properties.Fällig?.date?.start || "9999"));
             }
 
             document.getElementById('task-list').innerHTML = sorted.map(t => {
@@ -181,37 +182,55 @@
                 const owner = p.Zuständig?.select?.name || "Molti";
                 const date = p.Fällig?.date?.start ? new Date(p.Fällig.date.start).toLocaleDateString('de-DE', {day:'2-digit', month:'2-digit'}) : "-";
 
+                const statusClass = { 'Unklar': 'status-unklar', 'Offen': 'status-offen', 'In Arbeit': 'status-arbeit', 'Blockiert': 'status-blockiert', 'Erledigt': 'status-erledigt' }[status] || 'bg-slate-700';
+
                 return `
-                    <div class="task-card p-6" onclick="alert('Detailansicht: ${title}')">
-                        <h3 class="line-clamp-2 text-white font-bold mb-4 pr-10">${title}</h3>
+                    <div class="task-card p-7" id="card-${t.id}">
+                        <h3 class="line-clamp-2 text-white mb-5 pr-8 leading-snug">${title}</h3>
                         
-                        <div class="flex flex-wrap gap-2 mb-4">
-                            <span class="chip ${getStatusClass(status)}">${status}</span>
+                        <div class="flex flex-wrap gap-2.5 mb-5">
+                            <span class="chip ${statusClass}" onclick="openDrawer('filterDrawer')">${status}</span>
                             <span class="chip plan-chip">${plan}</span>
                             <span class="chip cat-chip">${cat}</span>
                             <span class="chip owner-chip">${owner.split(' ')[0]}</span>
                         </div>
 
-                        <div class="flex items-center justify-between pt-4 border-t border-slate-700/50">
-                            <div class="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        <div class="flex items-center justify-between pt-5 border-t border-slate-700/40">
+                            <div class="flex items-center gap-2 text-[11px] text-slate-500 font-black uppercase tracking-tighter">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                                 ${date}
                             </div>
-                            <div class="flex gap-3 text-slate-600">
-                                <div class="flex items-center gap-1"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.414a4 4 0 00-5.656-5.656l-6.415 6.415a6 6 0 108.486 8.486L20.5 13"></path></svg><span class="text-[9px] font-black">0</span></div>
+                            <div class="flex gap-4 text-slate-600">
+                                <div class="flex items-center gap-1.5"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.414a4 4 0 00-5.656-5.656l-6.415 6.415a6 6 0 108.486 8.486L20.5 13"></path></svg><span class="text-[10px] font-black">0</span></div>
                             </div>
                         </div>
                     </div>
                 `;
             }).join("");
+
+            // 6.1 Swipe Gesten Initialisierung
+            tasks.forEach(t => {
+                const el = document.getElementById(`card-${t.id}`);
+                if (!el) return;
+                const mc = new Hammer(el);
+                mc.on("swiperight", () => { el.classList.add('swipe-done'); showSnack("Task als erledigt markiert"); });
+                mc.on("swipeleft", () => { el.classList.add('swipe-edit'); showSnack("Task archiviert"); });
+            });
         }
+
+        function showSnack(msg) { const s = document.getElementById('snackbar'); document.getElementById('snack-msg').innerText = msg; s.classList.add('show'); setTimeout(hideSnack, 5000); }
+        function hideSnack() { document.getElementById('snackbar').classList.remove('show'); update(); }
 
         async function submitTask() {
             const name = document.getElementById('m-name').value;
-            if (name.length < 3) return;
+            if (name.length < 3) return alert("Titel min. 3 Zeichen");
             const res = await fetch(`/.netlify/functions/notion-proxy?db_id=${TASK_DB_ID}`, {
                 method: 'POST',
-                body: JSON.stringify({ properties: { "Aufgabe": { "title": [{ "text": { "content": name } }] } } })
+                body: JSON.stringify({ properties: { 
+                    "Aufgabe": { "title": [{ "text": { "content": name } }] },
+                    "Status": { "select": { "name": document.getElementById('m-status').value } },
+                    "Intervall": { "select": { "name": document.getElementById('m-planning').value } }
+                } })
             });
             if (res.ok) { closeDrawer(); document.getElementById('m-name').value=''; update(); }
         }
