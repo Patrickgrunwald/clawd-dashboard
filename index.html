@@ -2,119 +2,86 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Clawdbot Pro Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clawdbot Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { background-color: #0f172a; font-family: sans-serif; }
-        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9); }
-        .modal-content { background-color: #1e293b; margin: 10% auto; padding: 24px; border-radius: 2rem; width: 95%; max-width: 500px; border: 1px solid #334155; }
-        .fab { position: fixed; bottom: 24px; right: 24px; width: 64px; height: 64px; border-radius: 20px; background: #2563eb; color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4); z-index: 90; }
-        .chip { padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
-    </style>
 </head>
-<body class="text-slate-100">
+<body class="bg-slate-900 text-slate-100 p-4 min-h-screen font-sans">
+    <nav class="mb-8">
+        <h1 class="text-xl font-bold text-blue-400">⚡️ CLAWDBOT DASHBOARD</h1>
+        <p class="text-[10px] text-slate-500 uppercase tracking-widest">Status: Live via Netlify</p>
+    </nav>
 
-    <header class="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-xl border-b border-slate-800 px-6 py-4 flex justify-between items-center">
-        <div>
-            <h1 class="text-lg font-black tracking-tighter text-white">CLAWDBOT <span class="text-blue-500">PRO</span></h1>
-            <div class="flex items-center gap-1.5">
-                <div id="status-dot" class="w-2 h-2 rounded-full bg-green-500"></div>
-                <span id="relay-status" class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">System Online</span>
+    <main class="space-y-6">
+        <!-- Stats -->
+        <div class="grid grid-cols-2 gap-4">
+            <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700">
+                <div class="text-[10px] text-slate-500 uppercase font-bold">Total Tokens</div>
+                <div id="input-tokens" class="text-2xl font-bold">---</div>
+            </div>
+            <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700">
+                <div class="text-[10px] text-slate-500 uppercase font-bold">Last Update</div>
+                <div id="last-update" class="text-2xl font-bold text-blue-400">--:--</div>
             </div>
         </div>
-    </header>
 
-    <main class="max-w-xl mx-auto p-6 space-y-8 pb-32">
-        <section class="grid grid-cols-2 gap-4">
-            <div class="bg-slate-800 p-4 rounded-3xl border border-slate-700 shadow-lg">
-                <div class="text-[10px] font-bold text-slate-500 uppercase mb-1">Performance</div>
-                <div id="perf-tokens" class="text-xl font-black">---</div>
-            </div>
-            <div class="bg-slate-800 p-4 rounded-3xl border border-slate-700 shadow-lg">
-                <div class="text-[10px] font-bold text-slate-500 uppercase mb-1">Tasks</div>
-                <div id="task-count" class="text-xl font-black">0</div>
-            </div>
-        </section>
-
-        <section class="space-y-4">
-            <h2 class="text-xs font-black uppercase text-slate-500 tracking-widest px-1">Aufgabenübersicht</h2>
+        <!-- Tasks -->
+        <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
+            <h2 class="text-lg font-bold mb-4">Geplante Tasks</h2>
             <div id="task-list" class="space-y-3">
-                <div class="text-center py-10 text-slate-500 text-sm italic">Lade Daten...</div>
+                <div class="text-slate-500 italic text-sm">Lade Daten...</div>
             </div>
-        </section>
-    </main>
-
-    <button onclick="openTaskModal()" class="fab">
-        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path></svg>
-    </button>
-
-    <div id="taskModal" class="modal">
-        <div class="modal-content">
-            <h2 class="text-xl font-black mb-6">Neuer Smart Task</h2>
-            <div class="space-y-4">
-                <input type="text" id="m-name" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-white" placeholder="Was ist zu tun?">
-                <div class="flex gap-2 mt-4">
-                    <button onclick="submitTask()" class="flex-1 bg-blue-600 py-4 rounded-2xl font-black">Speichern</button>
-                    <button onclick="closeTaskModal()" class="flex-1 bg-slate-700 py-4 rounded-2xl font-black">Abbruch</button>
-                </div>
-            </div>
+            <button onclick="addTask()" class="w-full mt-6 py-4 bg-blue-600 rounded-xl font-bold active:scale-95 transition">
+                + Neuen Task hinzufügen
+            </button>
         </div>
-    </div>
+    </main>
 
     <script>
         const TASK_DB_ID = "2f88adfd364b81d9a1acea15263d4885";
         const STATS_DB_ID = "2f88adfd364b81c08fa2d019470cb1e5";
 
-        function openTaskModal() { document.getElementById('taskModal').style.display = 'block'; }
-        function closeTaskModal() { document.getElementById('taskModal').style.display = 'none'; }
-
-        async function submitTask() {
-            const name = document.getElementById('m-name').value;
-            if (!name) return;
+        async function addTask() {
+            const taskName = prompt("Was soll ich tun?");
+            if (!taskName) return;
             try {
                 const res = await fetch(`/.netlify/functions/notion-proxy?db_id=${TASK_DB_ID}`, {
                     method: 'POST',
                     body: JSON.stringify({
-                        properties: { "Aufgabe": { "title": [{ "text": { "content": name } }] } }
+                        properties: { "Aufgabe": { "title": [{ "text": { "content": taskName } }] } }
                     })
                 });
-                if (res.ok) { closeTaskModal(); update(); }
-            } catch (e) { alert("Fehler beim Senden"); }
+                if (res.ok) update();
+            } catch (e) { alert("Fehler"); }
         }
 
         async function update() {
             try {
-                const tasksRes = await fetch(`/.netlify/functions/notion-proxy?db_id=${TASK_DB_ID}`);
-                const tasks = await tasksRes.json();
-                
-                if (tasks.error || !tasks.results) {
-                    document.getElementById('task-list').innerHTML = `<div class="text-red-400 text-xs p-4 bg-red-900/20 rounded-xl">Fehler: ${tasks.message || 'Notion nicht erreichbar'}</div>`;
-                    return;
+                const [sRes, tRes] = await Promise.all([
+                    fetch(`/.netlify/functions/notion-proxy?db_id=${STATS_DB_ID}`),
+                    fetch(`/.netlify/functions/notion-proxy?db_id=${TASK_DB_ID}`)
+                ]);
+                const stats = await sRes.json();
+                const tasks = await tRes.json();
+
+                if (stats.results?.[0]) {
+                    const p = stats.results[0].properties;
+                    document.getElementById('input-tokens').innerText = (p["Total Tokens"]?.number / 1000).toFixed(1) + 'k';
+                    document.getElementById('last-update').innerText = new Date(p["Zeitpunkt"].date.start).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                 }
 
-                document.getElementById('task-count').innerText = tasks.results.length;
-                document.getElementById('task-list').innerHTML = tasks.results.map(t => {
-                    const p = t.properties;
-                    const title = p.Aufgabe?.title[0]?.plain_text || "Unbenannt";
-                    const status = p.Status?.select?.name || "Geplant";
-                    const owner = p.Zuständig?.select?.name || "Molti";
-                    return `
-                        <div class="bg-slate-800 p-5 rounded-[2rem] border border-slate-700">
-                            <h3 class="text-base font-bold mb-3">${title}</h3>
-                            <div class="flex gap-2">
-                                <span class="chip bg-blue-500/20 text-blue-400">${status}</span>
-                                <span class="chip bg-slate-900 text-slate-500">${owner}</span>
-                            </div>
+                if (tasks.results) {
+                    document.getElementById('task-list').innerHTML = tasks.results.map(t => `
+                        <div class="bg-slate-900 p-4 rounded-xl border-l-4 border-blue-500">
+                            <div class="text-sm font-medium">${t.properties.Aufgabe.title[0]?.plain_text || "Unbenannt"}</div>
+                            <div class="text-[10px] text-slate-500 mt-1 uppercase">${t.properties.Status?.select?.name || "Geplant"}</div>
                         </div>
-                    `;
-                }).join("");
-            } catch (e) {
-                document.getElementById('task-list').innerText = "Netzwerkfehler.";
-            }
+                    `).join('');
+                }
+            } catch (e) { console.error(e); }
         }
         update();
-        setInterval(update, 30000);
+        setInterval(update, 20000);
     </script>
 </body>
 </html>
