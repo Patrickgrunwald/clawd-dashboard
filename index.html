@@ -6,21 +6,15 @@
     <title>Clawdbot Pro Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root { --notion-bg: #191919; }
-        body { background-color: #0f172a; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
-        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9); backdrop-blur: 5px; }
+        body { background-color: #0f172a; font-family: sans-serif; }
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9); }
         .modal-content { background-color: #1e293b; margin: 10% auto; padding: 24px; border-radius: 2rem; width: 95%; max-width: 500px; border: 1px solid #334155; }
-        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        .fab { position: fixed; bottom: 24px; right: 24px; width: 64px; height: 64px; border-radius: 20px; background: #2563eb; color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4); z-index: 90; transition: transform 0.2s; }
-        .fab:active { transform: scale(0.9); }
-        .chip { padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.025em; }
-        /* Scrollbar hide */
-        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .fab { position: fixed; bottom: 24px; right: 24px; width: 64px; height: 64px; border-radius: 20px; background: #2563eb; color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4); z-index: 90; }
+        .chip { padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
     </style>
 </head>
-<body class="text-slate-100 selection:bg-blue-500/30">
+<body class="text-slate-100">
 
-    <!-- 1.1 Header mit Status -->
     <header class="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-xl border-b border-slate-800 px-6 py-4 flex justify-between items-center">
         <div>
             <h1 class="text-lg font-black tracking-tighter text-white">CLAWDBOT <span class="text-blue-500">PRO</span></h1>
@@ -29,107 +23,56 @@
                 <span id="relay-status" class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">System Online</span>
             </div>
         </div>
-        <button onclick="location.reload()" class="p-2 bg-slate-800 rounded-xl text-slate-400">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-        </button>
     </header>
 
     <main class="max-w-xl mx-auto p-6 space-y-8 pb-32">
-        
-        <!-- 3.1 Globale Suche -->
         <div class="relative">
-            <input type="text" id="global-search" oninput="handleSearch(this.value)" placeholder="Aufgaben durchsuchen..." class="w-full bg-slate-800/50 border border-slate-700 rounded-2xl py-4 pl-12 pr-4 outline-none focus:ring-2 focus:ring-blue-500/50 transition text-sm">
-            <svg class="w-5 h-5 text-slate-500 absolute left-4 top-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <input type="text" id="global-search" oninput="handleSearch(this.value)" placeholder="Aufgaben durchsuchen..." class="w-full bg-slate-800 border border-slate-700 rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-blue-500/50 text-sm">
         </div>
 
-        <!-- 1.1 Module (Grid) -->
         <section class="grid grid-cols-2 gap-4">
             <div class="bg-slate-800 p-4 rounded-3xl border border-slate-700 shadow-lg">
                 <div class="text-[10px] font-bold text-slate-500 uppercase mb-1">Performance</div>
                 <div id="perf-tokens" class="text-xl font-black">---</div>
-                <div class="text-[9px] text-green-500 font-bold mt-1">Nutzungsmetriken</div>
             </div>
             <div class="bg-slate-800 p-4 rounded-3xl border border-slate-700 shadow-lg">
-                <div class="text-[10px] font-bold text-slate-500 uppercase mb-1">Tasks Heute</div>
+                <div class="text-[10px] font-bold text-slate-500 uppercase mb-1">Tasks</div>
                 <div id="task-count" class="text-xl font-black">0</div>
-                <div class="text-[9px] text-blue-500 font-bold mt-1">Aktiv</div>
             </div>
         </section>
 
-        <!-- 2. Aufgabenliste -->
         <section class="space-y-4">
-            <div class="flex justify-between items-center px-1">
-                <h2 class="text-xs font-black uppercase text-slate-500 tracking-widest">Aufgabenübersicht</h2>
-                <button class="text-[10px] font-bold text-blue-500">FILTER</button>
-            </div>
-            
+            <h2 class="text-xs font-black uppercase text-slate-500 tracking-widest px-1">Aufgabenübersicht</h2>
             <div id="task-list" class="space-y-3">
-                <!-- Skeleton Loader -->
-                <div class="bg-slate-800/50 h-28 rounded-3xl animate-pulse"></div>
+                <div class="text-center py-10 text-slate-500 text-sm italic">Lade Daten von Notion...</div>
             </div>
         </section>
-
     </main>
 
-    <!-- 1.2 Primäre Aktion (FAB) -->
     <button onclick="openTaskModal()" class="fab">
         <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path></svg>
     </button>
 
-    <!-- Task Modal -->
     <div id="taskModal" class="modal">
-        <div class="modal-content">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-black">Neuer Smart Task</h2>
-                <button onclick="closeTaskModal()" class="text-slate-500 text-2xl">&times;</button>
-            </div>
-            <div class="space-y-5">
-                <div>
-                    <label class="block text-[10px] uppercase font-bold text-slate-500 mb-2">Titel (min. 3 Zeichen)</label>
-                    <input type="text" id="m-name" class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-4 text-white outline-none focus:border-blue-500" placeholder="z.B. Engelschalking Flyeralarm...">
-                </div>
+        <div class="modal-content text-slate-100">
+            <h2 class="text-xl font-black mb-6">Neuer Smart Task</h2>
+            <div class="space-y-4">
+                <input type="text" id="m-name" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-white" placeholder="Titel der Aufgabe...">
                 <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-[10px] uppercase font-bold text-slate-500 mb-2">Status</label>
-                        <select id="m-status" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm appearance-none">
-                            <option value="Offen">Offen</option>
-                            <option value="In Arbeit">In Arbeit</option>
-                            <option value="Blockiert">Blockiert</option>
-                            <option value="Erledigt">Erledigt</option>
-                            <option value="Unklar">Unklar</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] uppercase font-bold text-slate-500 mb-2">Planung</label>
-                        <select id="m-planning" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm appearance-none">
-                            <option value="Geplant">Geplant</option>
-                            <option value="Einmalig">Einmalig</option>
-                            <option value="Wiederkehrend">Wiederkehrend</option>
-                            <option value="Heute">Heute</option>
-                        </select>
-                    </div>
+                    <select id="m-status" class="bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm">
+                        <option value="Offen">Offen</option>
+                        <option value="In Arbeit">In Arbeit</option>
+                        <option value="Erledigt">Erledigt</option>
+                    </select>
+                    <select id="m-planning" class="bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm">
+                        <option value="Geplant">Geplant</option>
+                        <option value="Heute">Heute</option>
+                    </select>
                 </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-[10px] uppercase font-bold text-slate-500 mb-2">Owner</label>
-                        <select id="m-who" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm">
-                            <option value="Molti ⚡️">Molti ⚡️</option>
-                            <option value="Patrick 👤">Patrick 👤</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] uppercase font-bold text-slate-500 mb-2">Kategorie</label>
-                        <select id="m-type" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm">
-                            <option value="SEO / Web">SEO / Web</option>
-                            <option value="Kalender">Kalender</option>
-                            <option value="Recherche">Recherche</option>
-                            <option value="Allgemein">Allgemein</option>
-                        </select>
-                    </div>
+                <div class="flex gap-2 mt-4">
+                    <button onclick="submitTask()" class="flex-1 bg-blue-600 py-4 rounded-2xl font-black">Speichern</button>
+                    <button onclick="closeTaskModal()" class="flex-1 bg-slate-700 py-4 rounded-2xl font-black">Abbruch</button>
                 </div>
-                <button id="save-btn" onclick="submitTask()" class="w-full bg-blue-600 py-4 rounded-2xl font-black text-lg mt-4 shadow-xl active:scale-95 transition">
-                    Task speichern
-                </button>
             </div>
         </div>
     </div>
@@ -142,47 +85,23 @@
         function openTaskModal() { document.getElementById('taskModal').style.display = 'block'; }
         function closeTaskModal() { document.getElementById('taskModal').style.display = 'none'; }
 
-        // 2.4 Farben Logik
-        const statusColors = {
-            'Unklar': 'bg-yellow-500/20 text-yellow-500',
-            'Offen': 'bg-blue-500/20 text-blue-500',
-            'In Arbeit': 'bg-purple-500/20 text-purple-500',
-            'Blockiert': 'bg-red-500/20 text-red-500',
-            'Erledigt': 'bg-green-500/20 text-green-500'
-        };
-
-        const categoryColors = {
-            'SEO / Web': 'bg-emerald-500/10 text-emerald-500',
-            'Kalender': 'bg-amber-500/10 text-amber-500',
-            'Recherche': 'bg-indigo-500/10 text-indigo-500',
-            'Allgemein': 'bg-slate-500/10 text-slate-400'
-        };
-
         async function submitTask() {
             const name = document.getElementById('m-name').value;
-            if (name.length < 3) return alert("Titel muss min. 3 Zeichen haben!");
-
-            const btn = document.getElementById('save-btn');
-            btn.innerText = "Speichern..."; btn.disabled = true;
-
+            if (!name) return alert("Titel fehlt");
             try {
                 const res = await fetch(`/.netlify/functions/notion-proxy?db_id=${TASK_DB_ID}`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         properties: {
                             "Aufgabe": { "title": [{ "text": { "content": name } }] },
                             "Status": { "select": { "name": document.getElementById('m-status').value } },
-                            "Zuständig": { "select": { "name": document.getElementById('m-who').value } },
                             "Intervall": { "select": { "name": document.getElementById('m-planning').value } },
-                            "Typ": { "select": { "name": document.getElementById('m-type').value } },
                             "Fällig": { "date": { "start": new Date().toISOString().split('T')[0] } }
                         }
                     })
                 });
-                if (res.ok) { closeTaskModal(); document.getElementById('m-name').value = ''; update(); }
+                if (res.ok) { closeTaskModal(); update(); }
             } catch (e) { console.error(e); }
-            btn.innerText = "Task speichern"; btn.disabled = false;
         }
 
         async function update() {
@@ -195,57 +114,43 @@
                 const tasks = await tasksRes.json();
                 allTasks = tasks.results || [];
                 renderTasks(allTasks);
-                
                 if (stats.results?.[0]) {
                     const p = stats.results[0].properties;
                     document.getElementById('perf-tokens').innerText = (p["Total Tokens"]?.number / 1000).toFixed(1) + 'k';
-                    document.getElementById('last-update').innerText = new Date(p["Zeitpunkt"].date.start).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                 }
-            } catch (e) { console.error(e); }
+            } catch (e) { 
+                console.error("Update failed", e); 
+                document.getElementById('task-list').innerText = "Fehler beim Laden. Bitte Internet & Netlify prüfen.";
+            }
         }
 
-        function handleSearch(query) {
+        function handleSearch(q) {
             const filtered = allTasks.filter(t => {
-                const title = t.properties.Aufgabe.title[0]?.plain_text || "";
-                return title.toLowerCase().includes(query.toLowerCase());
+                const title = (t.properties.Aufgabe.title[0]?.plain_text || "").toLowerCase();
+                return title.includes(q.toLowerCase());
             });
             renderTasks(filtered);
         }
 
         function renderTasks(tasks) {
             document.getElementById('task-count').innerText = tasks.length;
+            if (tasks.length === 0) {
+                document.getElementById('task-list').innerHTML = '<div class="text-center py-10 text-slate-500">Keine Aufgaben gefunden.</div>';
+                return;
+            }
             document.getElementById('task-list').innerHTML = tasks.map(t => {
                 const p = t.properties;
                 const title = p.Aufgabe.title[0]?.plain_text || "Unbenannt";
                 const status = p.Status.select?.name || "Offen";
                 const planning = p.Intervall.select?.name || "Geplant";
-                const cat = p.Typ.select?.name || "Allgemein";
-                const owner = p.Zuständig.select?.name || "Molti ⚡️";
-                const date = p.Fällig.date?.start || "";
-
+                const owner = p.Zuständig?.select?.name || "Molti";
                 return `
-                    <div class="bg-slate-800 p-5 rounded-[2rem] border border-slate-700 shadow-xl active:scale-[0.98] transition">
-                        <!-- Zeile 1: Titel -->
-                        <h3 class="text-base font-bold text-white mb-3 line-clamp-2 leading-tight">${title}</h3>
-                        
-                        <!-- Zeile 2: Meta-Chips -->
-                        <div class="flex flex-wrap gap-2 mb-3">
-                            <span class="chip ${statusColors[status] || 'bg-slate-700'}">${status}</span>
+                    <div class="bg-slate-800 p-5 rounded-[2rem] border border-slate-700 shadow-xl">
+                        <h3 class="text-base font-bold text-white mb-3">${title}</h3>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="chip bg-blue-500/20 text-blue-500">${status}</span>
                             <span class="chip bg-slate-700 text-slate-300">${planning}</span>
-                            <span class="chip ${categoryColors[cat] || 'bg-slate-700'}">${cat}</span>
-                            <span class="chip bg-slate-900 text-slate-500 font-medium lowercase border border-slate-700">${owner.split(' ')[0]}</span>
-                        </div>
-
-                        <!-- Zeile 3: Optional/Footer -->
-                        <div class="flex items-center justify-between pt-3 border-t border-slate-700/50">
-                            <div class="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                                ${date}
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <div class="w-1.5 h-1.5 rounded-full bg-slate-600"></div>
-                                <span class="text-[9px] text-slate-600 font-bold uppercase">v1.0</span>
-                            </div>
+                            <span class="chip bg-slate-900 text-slate-500">${owner.split(' ')[0]}</span>
                         </div>
                     </div>
                 `;
