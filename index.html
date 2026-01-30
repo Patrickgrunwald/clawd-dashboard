@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clawdbot Ops Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .modal { display: none; position: fixed; z-index: 50; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); }
+        .modal-content { background-color: #1e293b; margin: 10% auto; padding: 20px; border-radius: 1rem; width: 90%; max-width: 500px; }
+    </script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen">
     <nav class="border-b border-slate-800 p-4 mb-8">
@@ -28,69 +32,104 @@
                     <div id="last-update" class="text-[10px] font-medium text-blue-400">Syncing...</div>
                 </div>
                 <div class="bg-slate-900 p-4 rounded-xl">
-                    <div class="text-xs text-slate-500 uppercase">Relay Status</div>
+                    <div class="text-xs text-slate-500 uppercase">Status</div>
                     <div id="relay-status" class="text-2xl font-bold text-blue-400 italic">Sync...</div>
                 </div>
             </div>
         </div>
 
         <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
-            <h2 class="text-lg font-semibold mb-4 text-slate-300">Geplante Tasks</h2>
-            <div id="task-list" class="space-y-3 mb-6"></div>
-            <button onclick="addTask()" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition mb-4">
-                Neuen Task hinzufügen
+            <h2 class="text-lg font-semibold mb-4 text-slate-300">📋 Aufgaben-Board</h2>
+            <div id="task-list" class="space-y-4 mb-6 max-h-[500px] overflow-y-auto pr-2"></div>
+            <button onclick="document.getElementById('taskModal').style.display='block'" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition mb-4">
+                + Neuen Smart Task
             </button>
             <button onclick="localStorage.removeItem('notion_token'); location.reload();" class="w-full py-2 bg-slate-700 text-xs rounded-lg">Token ändern</button>
         </div>
-
     </main>
+
+    <!-- Modal für neue Tasks -->
+    <div id="taskModal" class="modal">
+        <div class="modal-content">
+            <h2 class="text-xl font-bold mb-4">Neuen Task planen</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs uppercase text-slate-400 mb-1">Aufgabe</label>
+                    <input type="text" id="m-name" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2" placeholder="Was ist zu tun?">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs uppercase text-slate-400 mb-1">Zuständig</label>
+                        <select id="m-who" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2">
+                            <option value="Molti ⚡️">Molti ⚡️</option>
+                            <option value="Patrick 👤">Patrick 👤</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs uppercase text-slate-400 mb-1">Intervall</label>
+                        <select id="m-inter" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2">
+                            <option value="Einmalig">Einmalig</option>
+                            <option value="Täglich">Täglich</option>
+                            <option value="Wöchentlich">Wöchentlich</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs uppercase text-slate-400 mb-1">Typ</label>
+                    <select id="m-type" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2">
+                        <option value="Allgemein">Allgemein</option>
+                        <option value="SEO / Web">SEO / Web</option>
+                        <option value="Recherche">Recherche</option>
+                        <option value="Kalender">Kalender</option>
+                    </select>
+                </div>
+                <div class="flex space-x-2 pt-4">
+                    <button onclick="submitTask()" class="flex-1 bg-blue-600 py-3 rounded-lg font-bold">Speichern</button>
+                    <button onclick="document.getElementById('taskModal').style.display='none'" class="flex-1 bg-slate-700 py-3 rounded-lg font-bold">Abbrechen</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
         const TASK_DB_ID = "2f88adfd364b81d9a1acea15263d4885";
         const STATS_DB_ID = "2f88adfd364b81c08fa2d019470cb1e5";
 
-        async function addTask() {
-            const taskName = prompt("Was soll ich für dich tun?");
-            if (!taskName) return;
+        async function submitTask() {
+            const name = document.getElementById('m-name').value;
+            const who = document.getElementById('m-who').value;
+            const inter = document.getElementById('m-inter').value;
+            const type = document.getElementById('m-type').value;
 
-            try {
-                const res = await fetch(`/.netlify/functions/notion-proxy?db_id=${TASK_DB_ID}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        properties: {
-                            "Aufgabe": { "title": [{ "text": { "content": taskName } }] },
-                            "Status": { "select": { "name": "Geplant" } },
-                            "Fällig": { "date": { "start": new Date().toISOString().split('T')[0] } }
-                        }
-                    })
-                });
-                if (res.ok) {
-                    alert("Task erfolgreich hinzugefügt! ⚡️");
-                    update();
-                } else {
-                    alert("Fehler beim Speichern in Notion.");
-                }
-            } catch (e) {
-                console.error(e);
-                alert("Netzwerkfehler.");
+            if (!name) return alert("Bitte Aufgabe eingeben!");
+
+            const res = await fetch(`/.netlify/functions/notion-proxy?db_id=${TASK_DB_ID}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    properties: {
+                        "Aufgabe": { "title": [{ "text": { "content": name } }] },
+                        "Status": { "select": { "name": "Geplant" } },
+                        "Zuständig": { "select": { "name": who } },
+                        "Intervall": { "select": { "name": inter } },
+                        "Typ": { "select": { "name": type } },
+                        "Fällig": { "date": { "start": new Date().toISOString().split('T')[0] } }
+                    }
+                })
+            });
+            
+            if (res.ok) {
+                document.getElementById('taskModal').style.display = 'none';
+                document.getElementById('m-name').value = '';
+                update();
             }
         }
 
-        async function fetchNotion(dbId, method = 'GET', body = null) {
+        async function fetchNotion(dbId) {
             try {
-                const options = { method };
-                if (body) {
-                    options.body = JSON.stringify(body);
-                    options.headers = { 'Content-Type': 'application/json' };
-                }
-                const res = await fetch(`/.netlify/functions/notion-proxy?db_id=${dbId}`, options);
-                if (!res.ok) throw new Error("Proxy Error");
+                const res = await fetch(`/.netlify/functions/notion-proxy?db_id=${dbId}`);
                 return await res.json();
-            } catch (e) {
-                console.error("Sync Error:", e);
-                return null;
-            }
+            } catch (e) { return null; }
         }
 
         async function update() {
@@ -99,24 +138,38 @@
             
             if (stats?.results?.[0]) {
                 const p = stats.results[0].properties;
-                document.getElementById('input-tokens').innerText = p["Total Tokens"].number.toLocaleString();
+                document.getElementById('input-tokens').innerText = p["Total Tokens"]?.number?.toLocaleString() || "---";
                 document.getElementById('last-update').innerText = new Date(p["Zeitpunkt"].date.start).toLocaleTimeString();
                 document.getElementById('relay-status').innerText = "Netlify Sync";
-                document.getElementById('relay-status').classList.remove('text-red-400');
-                document.getElementById('relay-status').classList.add('text-green-400');
             }
             if (tasks?.results) {
                 document.getElementById('task-list').innerHTML = tasks.results.map(t => {
                     const p = t.properties;
-                    const status = p["Status"].select?.name || "Geplant";
-                    return `<div class="bg-slate-900 p-3 rounded-lg border-l-4 border-blue-500 mb-2">
-                        <div class="text-xs text-slate-400">${status}</div>
-                        <div class="text-sm">${p["Aufgabe"].title[0].plain_text}</div>
-                    </div>`;
+                    const who = p["Zuständig"]?.select?.name || "Unklar";
+                    const type = p["Typ"]?.select?.name || "Allgemein";
+                    const interval = p["Intervall"]?.select?.name || "Einmalig";
+                    const status = p["Status"]?.select?.name || "Geplant";
+                    
+                    let badgeColor = who.includes('Molti') ? 'bg-blue-900 text-blue-300' : 'bg-orange-900 text-orange-300';
+                    
+                    return `
+                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 relative overflow-hidden">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded ${badgeColor}">${who}</span>
+                                <span class="text-[10px] text-slate-500 uppercase font-bold">${interval}</span>
+                            </div>
+                            <div class="text-sm font-medium mb-2">${p["Aufgabe"].title[0].plain_text}</div>
+                            <div class="flex items-center text-[10px] text-slate-500 space-x-2">
+                                <span class="bg-slate-800 px-2 py-0.5 rounded"># ${type}</span>
+                                <span>•</span>
+                                <span>Status: ${status}</span>
+                            </div>
+                        </div>
+                    `;
                 }).join("");
             }
         }
-        setInterval(update, 15000);
+        setInterval(update, 20000);
         update();
     </script>
 </body>
