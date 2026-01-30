@@ -4,14 +4,26 @@ exports.handler = async (event, context) => {
   const { db_id } = event.queryStringParameters;
   const NOTION_TOKEN = process.env.NOTION_TOKEN;
 
+  // Debugging-Header für Patrick (wird nur im Fehlerfall nützlich)
+  const headers = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Content-Type": "application/json"
+  };
+
+  if (event.httpMethod === "OPTIONS") {
+    return { statusCode: 200, headers, body: "" };
+  }
+
   if (!NOTION_TOKEN) {
-    return { statusCode: 500, body: JSON.stringify({ error: "NOTION_TOKEN not set" }) };
+    return { statusCode: 500, headers, body: JSON.stringify({ error: "NOTION_TOKEN nicht gesetzt" }) };
   }
 
   try {
-    // GET -> Datenbank abfragen
+    let response;
     if (event.httpMethod === "GET") {
-      const response = await fetch(`https://api.notion.com/v1/databases/${db_id}/query`, {
+      response = await fetch(`https://api.notion.com/v1/databases/${db_id}/query`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${NOTION_TOKEN}`,
@@ -19,18 +31,9 @@ exports.handler = async (event, context) => {
           "Content-Type": "application/json"
         }
       });
-      const data = await response.json();
-      return {
-        statusCode: 200,
-        headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-      };
-    }
-
-    // POST -> Neue Seite (Task) erstellen
-    if (event.httpMethod === "POST") {
+    } else if (event.httpMethod === "POST") {
       const body = JSON.parse(event.body);
-      const response = await fetch(`https://api.notion.com/v1/pages`, {
+      response = await fetch(`https://api.notion.com/v1/pages`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${NOTION_TOKEN}`,
@@ -42,14 +45,19 @@ exports.handler = async (event, context) => {
           properties: body.properties
         })
       });
-      const data = await response.json();
-      return {
-        statusCode: 200,
-        headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-      };
     }
+
+    const data = await response.json();
+    return {
+      statusCode: response.ok ? 200 : response.status,
+      headers,
+      body: JSON.stringify(data)
+    };
   } catch (error) {
-    return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: error.message })
+    };
   }
 };
