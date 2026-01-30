@@ -37,6 +37,9 @@
         <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
             <h2 class="text-lg font-semibold mb-4 text-slate-300">Geplante Tasks</h2>
             <div id="task-list" class="space-y-3 mb-6"></div>
+            <button onclick="addTask()" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition mb-4">
+                Neuen Task hinzufügen
+            </button>
             <button onclick="localStorage.removeItem('notion_token'); location.reload();" class="w-full py-2 bg-slate-700 text-xs rounded-lg">Token ändern</button>
         </div>
 
@@ -46,11 +49,42 @@
         const TASK_DB_ID = "2f88adfd364b81d9a1acea15263d4885";
         const STATS_DB_ID = "2f88adfd364b81c08fa2d019470cb1e5";
 
-        async function fetchNotion(dbId) {
-            // Wir rufen jetzt die Netlify Function auf statt direkt die Notion API
-            // Die Netlify URL ist relativ zum Dashboard
+        async function addTask() {
+            const taskName = prompt("Was soll ich für dich tun?");
+            if (!taskName) return;
+
             try {
-                const res = await fetch(`/.netlify/functions/notion-proxy?db_id=${dbId}`);
+                const res = await fetch(`/.netlify/functions/notion-proxy?db_id=${TASK_DB_ID}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        properties: {
+                            "Aufgabe": { "title": [{ "text": { "content": taskName } }] },
+                            "Status": { "select": { "name": "Geplant" } },
+                            "Fällig": { "date": { "start": new Date().toISOString().split('T')[0] } }
+                        }
+                    })
+                });
+                if (res.ok) {
+                    alert("Task erfolgreich hinzugefügt! ⚡️");
+                    update();
+                } else {
+                    alert("Fehler beim Speichern in Notion.");
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Netzwerkfehler.");
+            }
+        }
+
+        async function fetchNotion(dbId, method = 'GET', body = null) {
+            try {
+                const options = { method };
+                if (body) {
+                    options.body = JSON.stringify(body);
+                    options.headers = { 'Content-Type': 'application/json' };
+                }
+                const res = await fetch(`/.netlify/functions/notion-proxy?db_id=${dbId}`, options);
                 if (!res.ok) throw new Error("Proxy Error");
                 return await res.json();
             } catch (e) {
