@@ -2,71 +2,96 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clawdbot Ops Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Clawdbot Mobile Ops</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .modal { display: none; position: fixed; z-index: 50; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); }
-        .modal-content { background-color: #1e293b; margin: 10% auto; padding: 20px; border-radius: 1rem; width: 90%; max-width: 500px; }
+        .modal { display: none; position: fixed; z-index: 50; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9); }
+        .modal-content { background-color: #1e293b; margin: 15% auto; padding: 20px; border-radius: 1.5rem; width: 95%; max-width: 450px; }
+        /* Smooth scrolling for task list */
+        #task-list { -webkit-overflow-scrolling: touch; }
+        /* Active touch state for buttons */
+        button:active { transform: scale(0.98); opacity: 0.9; }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen">
-    <nav class="border-b border-slate-800 p-4 mb-8">
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased select-none">
+    
+    <!-- Mobile Header -->
+    <nav class="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 p-4">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <h1 class="text-xl font-bold tracking-tight text-blue-400">⚡️ CLAWDBOT DASHBOARD</h1>
-            <div class="text-xs text-slate-400 uppercase tracking-widest">Live Status: Active</div>
+            <h1 class="text-lg font-black tracking-tighter text-blue-400 flex items-center gap-2">
+                <span class="bg-blue-600 text-white p-1 rounded">⚡️</span> CLAWDBOT
+            </h1>
+            <div id="relay-status-badge" class="px-2 py-1 bg-slate-800 rounded-full text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                Syncing...
+            </div>
         </div>
     </nav>
 
-    <main class="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+    <main class="max-w-7xl mx-auto p-4 space-y-6">
         
-        <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl col-span-2">
-            <h2 class="text-lg font-semibold mb-4 text-slate-300">Token Verbrauch (Live via Notion)</h2>
-            <div class="grid grid-cols-3 gap-4">
-                <div class="bg-slate-900 p-4 rounded-xl">
-                    <div class="text-xs text-slate-500 uppercase">Input Total</div>
-                    <div id="input-tokens" class="text-2xl font-bold">---</div>
+        <!-- Stats Card (Compact for Mobile) -->
+        <div class="bg-slate-800 p-5 rounded-3xl border border-slate-700 shadow-2xl">
+            <h2 class="text-xs font-bold uppercase text-slate-500 mb-4 tracking-widest">Live Performance</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-700/50">
+                    <div class="text-[10px] text-slate-500 uppercase font-bold mb-1">Total Tokens</div>
+                    <div id="input-tokens" class="text-2xl font-black text-white">---</div>
                 </div>
-                <div class="bg-slate-900 p-4 rounded-xl">
-                    <div class="text-xs text-slate-500 uppercase">Update</div>
-                    <div id="last-update" class="text-[10px] font-medium text-blue-400">Syncing...</div>
-                </div>
-                <div class="bg-slate-900 p-4 rounded-xl">
-                    <div class="text-xs text-slate-500 uppercase">Status</div>
-                    <div id="relay-status" class="text-2xl font-bold text-blue-400 italic">Sync...</div>
+                <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-700/50">
+                    <div class="text-[10px] text-slate-500 uppercase font-bold mb-1">Last Sync</div>
+                    <div id="last-update" class="text-2xl font-black text-blue-400">--:--</div>
                 </div>
             </div>
         </div>
 
-        <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
-            <h2 class="text-lg font-semibold mb-4 text-slate-300">📋 Aufgaben-Board</h2>
-            <div id="task-list" class="space-y-4 mb-6 max-h-[500px] overflow-y-auto pr-2"></div>
-            <button onclick="openTaskModal()" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition mb-4">
-                + Neuen Smart Task
-            </button>
+        <!-- Task Board -->
+        <div class="space-y-4">
+            <div class="flex justify-between items-center px-2">
+                <h2 class="text-sm font-bold uppercase text-slate-400 tracking-widest">📋 Aufgaben-Board</h2>
+                <span id="task-count" class="text-[10px] bg-slate-800 px-2 py-0.5 rounded-full text-slate-500">0 Tasks</span>
+            </div>
+            
+            <div id="task-list" class="space-y-3 pb-24">
+                <!-- Tasks loaded via JS -->
+                <div class="animate-pulse flex flex-col space-y-3">
+                    <div class="h-24 bg-slate-800 rounded-2xl"></div>
+                    <div class="h-24 bg-slate-800 rounded-2xl"></div>
+                </div>
+            </div>
         </div>
     </main>
 
-    <!-- Modal für neue Tasks -->
+    <!-- Floating Action Button (Mobile Style) -->
+    <div class="fixed bottom-6 left-0 right-0 px-6 z-40">
+        <button onclick="openTaskModal()" class="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black shadow-3xl flex items-center justify-center gap-2 transform transition active:scale-95">
+            <span class="text-xl">+</span> NEUEN TASK PLANEN
+        </button>
+    </div>
+
+    <!-- Modal für neue Tasks (Full Mobile Style) -->
     <div id="taskModal" class="modal">
         <div class="modal-content">
-            <h2 class="text-xl font-bold mb-4">Neuen Task planen</h2>
-            <div class="space-y-4 text-slate-100">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-black">Smart Task</h2>
+                <button onclick="closeTaskModal()" class="text-slate-500 text-2xl">&times;</button>
+            </div>
+            <div class="space-y-5 text-slate-100">
                 <div>
-                    <label class="block text-xs uppercase text-slate-400 mb-1">Aufgabe</label>
-                    <input type="text" id="m-name" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2" placeholder="Was ist zu tun?">
+                    <label class="block text-[10px] uppercase font-bold text-slate-500 mb-2">Was ist zu tun?</label>
+                    <input type="text" id="m-name" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-lg outline-none focus:border-blue-500 transition" placeholder="Titel der Aufgabe...">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs uppercase text-slate-400 mb-1">Zuständig</label>
-                        <select id="m-who" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2">
+                        <label class="block text-[10px] uppercase font-bold text-slate-500 mb-2">Wer?</label>
+                        <select id="m-who" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 appearance-none outline-none focus:border-blue-500">
                             <option value="Molti ⚡️">Molti ⚡️</option>
                             <option value="Patrick 👤">Patrick 👤</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs uppercase text-slate-400 mb-1">Intervall</label>
-                        <select id="m-inter" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2">
+                        <label class="block text-[10px] uppercase font-bold text-slate-500 mb-2">Wie oft?</label>
+                        <select id="m-inter" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 appearance-none outline-none focus:border-blue-500">
                             <option value="Einmalig">Einmalig</option>
                             <option value="Täglich">Täglich</option>
                             <option value="Wöchentlich">Wöchentlich</option>
@@ -74,18 +99,17 @@
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs uppercase text-slate-400 mb-1">Typ</label>
-                    <select id="m-type" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2">
+                    <label class="block text-[10px] uppercase font-bold text-slate-500 mb-2">Kategorie</label>
+                    <select id="m-type" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 appearance-none outline-none focus:border-blue-500">
                         <option value="Allgemein">Allgemein</option>
                         <option value="SEO / Web">SEO / Web</option>
                         <option value="Recherche">Recherche</option>
                         <option value="Kalender">Kalender</option>
                     </select>
                 </div>
-                <div class="flex space-x-2 pt-4">
-                    <button onclick="submitTask()" class="flex-1 bg-blue-600 py-3 rounded-lg font-bold">Speichern</button>
-                    <button onclick="closeTaskModal()" class="flex-1 bg-slate-700 py-3 rounded-lg font-bold">Abbrechen</button>
-                </div>
+                <button onclick="submitTask()" class="w-full bg-blue-600 py-4 rounded-xl font-black text-lg mt-4 shadow-xl active:scale-95 transition">
+                    Speichern
+                </button>
             </div>
         </div>
     </div>
@@ -103,7 +127,11 @@
             const inter = document.getElementById('m-inter').value;
             const type = document.getElementById('m-type').value;
 
-            if (!name) return alert("Bitte Aufgabe eingeben!");
+            if (!name) return alert("Aufgabe eingeben!");
+
+            const btn = event.target;
+            btn.innerText = "Sende...";
+            btn.disabled = true;
 
             try {
                 const res = await fetch(`/.netlify/functions/notion-proxy?db_id=${TASK_DB_ID}`, {
@@ -125,7 +153,9 @@
                     document.getElementById('m-name').value = '';
                     update();
                 }
-            } catch (e) { console.error(e); }
+            } catch (e) { alert("Fehler!"); }
+            btn.innerText = "Speichern";
+            btn.disabled = false;
         }
 
         async function fetchNotion(dbId) {
@@ -133,10 +163,7 @@
                 const res = await fetch(`/.netlify/functions/notion-proxy?db_id=${dbId}`);
                 if (!res.ok) throw new Error("HTTP " + res.status);
                 return await res.json();
-            } catch (e) { 
-                console.error("fetchNotion error:", e);
-                return null; 
-            }
+            } catch (e) { return null; }
         }
 
         async function update() {
@@ -145,11 +172,15 @@
             
             if (stats && stats.results && stats.results[0]) {
                 const p = stats.results[0].properties;
-                document.getElementById('input-tokens').innerText = (p["Total Tokens"] && p["Total Tokens"].number) ? p["Total Tokens"].number.toLocaleString() : "0";
-                document.getElementById('last-update').innerText = p["Zeitpunkt"] && p["Zeitpunkt"].date ? new Date(p["Zeitpunkt"].date.start).toLocaleTimeString() : "---";
-                document.getElementById('relay-status').innerText = "Netlify Sync";
+                document.getElementById('input-tokens').innerText = (p["Total Tokens"] && p["Total Tokens"].number) ? (p["Total Tokens"].number / 1000).toFixed(1) + 'k' : "0";
+                document.getElementById('last-update').innerText = p["Zeitpunkt"] && p["Zeitpunkt"].date ? new Date(p["Zeitpunkt"].date.start).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "--:--";
+                const badge = document.getElementById('relay-status-badge');
+                badge.innerText = "Cloud Sync";
+                badge.className = "px-2 py-1 bg-green-900/30 rounded-full text-[10px] font-bold uppercase tracking-widest text-green-400";
             }
+
             if (tasks && tasks.results) {
+                document.getElementById('task-count').innerText = `${tasks.results.length} Tasks`;
                 document.getElementById('task-list').innerHTML = tasks.results.map(t => {
                     const p = t.properties;
                     const taskTitle = (p["Aufgabe"] && p["Aufgabe"].title && p["Aufgabe"].title[0]) ? p["Aufgabe"].title[0].plain_text : "Unbenannt";
@@ -158,26 +189,26 @@
                     const interval = (p["Intervall"] && p["Intervall"].select) ? p["Intervall"].select.name : "Einmalig";
                     const status = (p["Status"] && p["Status"].select) ? p["Status"].select.name : "Geplant";
                     
-                    let badgeColor = who.includes('Molti') ? 'bg-blue-900 text-blue-300' : 'bg-orange-900 text-orange-300';
+                    let badgeColor = who.includes('Molti') ? 'bg-blue-600/20 text-blue-400' : 'bg-orange-600/20 text-orange-400';
+                    let statusColor = status === 'Erledigt' ? 'text-green-400' : 'text-slate-500';
                     
                     return `
-                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-700">
-                            <div class="flex justify-between items-start mb-2">
-                                <span class="text-[10px] font-bold px-2 py-0.5 rounded ${badgeColor}">${who}</span>
-                                <span class="text-[10px] text-slate-500 uppercase font-bold">${interval}</span>
+                        <div class="bg-slate-800 p-5 rounded-3xl border border-slate-700 shadow-lg active:bg-slate-750 transition">
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider ${badgeColor}">${who}</span>
+                                <span class="text-[9px] text-slate-500 font-bold uppercase tracking-widest">${interval}</span>
                             </div>
-                            <div class="text-sm font-medium mb-2">${taskTitle}</div>
-                            <div class="flex items-center text-[10px] text-slate-500 space-x-2">
-                                <span class="bg-slate-800 px-2 py-0.5 rounded"># ${type}</span>
-                                <span>•</span>
-                                <span>Status: ${status}</span>
+                            <div class="text-base font-bold text-white mb-3 leading-tight">${taskTitle}</div>
+                            <div class="flex items-center justify-between pt-3 border-t border-slate-700/50">
+                                <span class="text-[10px] font-bold text-slate-500 uppercase"># ${type}</span>
+                                <span class="text-[10px] font-bold uppercase ${statusColor}">${status}</span>
                             </div>
                         </div>
                     `;
                 }).join("");
             }
         }
-        setInterval(update, 20000);
+        setInterval(update, 30000);
         update();
     </script>
 </body>
