@@ -1,0 +1,9 @@
+{
+  "name": "clawd-dashboard",
+  "version": "1.0.0",
+  "description": "Clawdbot Ops Dashboard",
+  "main": "index.html",
+  "dependencies": {
+    "node-fetch": "^2.6.7"
+  }
+}
